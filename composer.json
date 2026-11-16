@@ -26,6 +26,9 @@
         "test:integration": "@php vendor/phpunit/phpunit/phpunit --testsuite Integration"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2.0"
+        }
     }
 }
