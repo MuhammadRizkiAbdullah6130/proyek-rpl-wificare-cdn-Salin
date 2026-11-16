@@ -1,0 +1,55 @@
+# =============================================================================
+# WiFiCare CDN — contoh VirtualHost Apache (XAMPP, Windows)
+# =============================================================================
+# Tujuan: hanya folder `public/` yang menjadi web document root, sehingga
+# app/, config/, database/, routes/, storage/, tests/, vendor/, dan .env
+# TIDAK PERNAH dapat diakses lewat URL.
+#
+# CARA PASANG (opsional; .htaccess proyek sudah melindungi deployment subfolder):
+# 1. Salin berkas ini ke:
+#       C:\xampp\apache\conf\extra\wificare-cdn.conf
+# 2. Buka C:\xampp\apache\conf\httpd.conf, pastikan baris berikut aktif:
+#       Listen 80
+#       Include conf/extra/httpd-vhosts.conf
+#    lalu tambahkan di akhir httpd.conf:
+#       Include conf/extra/wificare-cdn.conf
+# 3. Tambahkan host lokal pada:
+#       C:\Windows\System32\drivers\etc\hosts
+#       127.0.0.1  wificare.local
+# 4. Setel .env:
+#       APP_URL=http://wificare.local
+#       APP_BASE_PATH=
+# 5. Restart Apache, lalu buka http://wificare.local
+#
+# ROLLBACK:
+# - Hapus baris "Include conf/extra/wificare-cdn.conf" dari httpd.conf.
+# - Hapus berkas C:\xampp\apache\conf\extra\wificare-cdn.conf.
+# - Hapus baris "127.0.0.1 wificare.local" dari hosts.
+# - Kembalikan APP_BASE_PATH=/aduan-pelanggan/public bila memakai subfolder.
+# =============================================================================
+
+<VirtualHost *:80>
+    ServerName wificare.local
+    ServerAlias wificare.localhost
+
+    # HANYA folder public yang menjadi document root.
+    DocumentRoot "C:/xampp/htdocs/aduan-pelanggan/public"
+
+    <Directory "C:/xampp/htdocs/aduan-pelanggan/public">
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Folder proyek lain berada DI LUAR document root, jadi tidak dapat diakses
+    # melalui URL. Konfigurasi .htaccess internal tetap menjadi lapisan kedua.
+
+    ErrorLog "logs/wificare-cdn-error.log"
+    CustomLog "logs/wificare-cdn-access.log" combined
+
+    <IfModule mod_headers.c>
+        Header always set X-Content-Type-Options "nosniff"
+        Header always set X-Frame-Options "SAMEORIGIN"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    </IfModule>
+</VirtualHost>

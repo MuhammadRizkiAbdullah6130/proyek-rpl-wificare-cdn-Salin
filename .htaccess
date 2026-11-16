@@ -1,0 +1,62 @@
+# =============================================================================
+# WiFiCare CDN — Proteksi folder internal proyek (deployment subfolder XAMPP)
+# =============================================================================
+# Berkas ini melindungi kondisi saat DocumentRoot Apache masih menunjuk ke
+# C:/xampp/htdocs (sehingga proyek dapat diakses di
+# http://localhost/aduan-pelanggan/). Hanya isi folder `public/` yang boleh
+# diakses melalui browser; seluruh folder internal ditolak.
+#
+# Untuk deployment produksi, tetap disarankan VirtualHost dengan
+# DocumentRoot langsung ke folder `public/` (lihat README + deploy/apache/).
+# Berkas ini adalah lapisan pertahanan tambahan (defense in depth).
+# =============================================================================
+
+# Jangan pernah menampilkan daftar isi direktori.
+Options -Indexes
+
+# Jangan tampilkan berkas sensitif sebagai halaman default.
+DirectoryIndex disabled
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Basis URL folder proyek pada deployment subfolder XAMPP. Sesuaikan bila
+    # nama folder berubah; tidak diperlukan pada deployment VirtualHost.
+    RewriteBase /aduan-pelanggan/
+
+    # Akar proyek bukan halaman publik: arahkan ke front controller di public/.
+    RewriteRule ^$ public/ [R=302,L]
+
+    # Tolak SEMUA akses langsung ke folder internal (termasuk storage/uploads,
+    # database/*.sql, log, tests, dan file konfigurasi).
+    RewriteRule ^(?:app|bin|config|database|deploy|routes|storage|tests|vendor)(?:/|$) - [F,L,NC]
+
+    # Tolak dotfiles (.env, .git, .htaccess, dan sejenisnya), kecuali
+    # /.well-known/ yang memang boleh publik.
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+    # Tolak berkas konfigurasi/backup/dump/log di lokasi mana pun.
+    RewriteRule \.(?:sql|log|bak|old|orig|save|swp|ini|env|sh|ps1|bat|cmd|md|zip|rar|7z|tar|gz|tgz|dump|sqlite|db)$ - [F,L,NC]
+    RewriteRule (^|/)composer\.(?:json|lock)$ - [F,L,NC]
+
+    # Hanya izinkan berkas nyata di public/ (aset statis + index.php).
+    # Permintaan lain tetap diproses oleh public/.htaccess.
+</IfModule>
+
+# Defense in depth: bila mod_rewrite tidak aktif, tetap tolak berkas rahasia.
+<FilesMatch "(?i)^(\.env.*|\.git.*|composer\.(json|lock)|.*\.(sql|log|bak|old|orig|save|swp|ini|env|sh|ps1|bat|cmd|md|zip|rar|7z|tar|gz|tgz|dump|sqlite|db))$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Header keamanan dasar (aset statis di public/ juga mendapat header ini).
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>

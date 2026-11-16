@@ -1,0 +1,123 @@
+# =============================================================================
+# WiFiCare CDN — aturan ignore Git
+# Tujuan: rahasia, kredensial, log, cache, unggahan, dan cadangan database
+# tidak pernah masuk repository. Source code, dokumentasi, migrasi, seeder,
+# konfigurasi contoh, dan aset publik tetap dapat di-commit.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Environment & rahasia
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.*.example
+
+# Kredensial lokal khusus pengujian (jangan pernah di-commit)
+tests/.env
+tests/.env.*
+tests/*.credentials.php
+tests/**/_config.local.php
+
+# Berkas kunci/sertifikat dan kredensial lokal
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+.npmrc
+.authinfo
+.netrc
+secrets.*
+*.secret
+*.secrets
+
+# -----------------------------------------------------------------------------
+# Cadangan / dump database dan arsip
+# Catatan: database/migrations/*.sql dan database/seeds/*.sql tetap di-commit.
+# -----------------------------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.dump
+*.sql
+!database/migrations/*.sql
+!database/seeds/*.sql
+!database/readonly_ai_user.example.sql
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+/database/backups/
+/database/dumps/
+
+# -----------------------------------------------------------------------------
+# Log & cache
+# -----------------------------------------------------------------------------
+*.log
+storage/logs/*
+!storage/logs/.gitkeep
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+coverage/
+coverage.*
+build/
+*.cache
+
+# -----------------------------------------------------------------------------
+# Unggahan pengguna & berkas generated (folder tetap ada via .gitkeep)
+# -----------------------------------------------------------------------------
+storage/uploads/**
+!storage/uploads/**/
+!storage/uploads/**/.gitkeep
+!storage/uploads/.gitkeep
+storage/exports/
+storage/tmp/
+storage/cache/
+tmp/
+temp/
+
+# -----------------------------------------------------------------------------
+# Dependensi
+# -----------------------------------------------------------------------------
+vendor/
+node_modules/
+
+# -----------------------------------------------------------------------------
+# Berkas sementara / editor / sistem operasi
+# -----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+~$*
+*.pid
+*.sock
+.idea/
+.vscode/
+*.iml
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+.DS_Store?
+._*

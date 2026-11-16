@@ -1,0 +1,10 @@
+# WiFiCare CDN - folder internal, tidak boleh diakses lewat browser.
+# Defence in depth: front controller hanya berada di public/.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+Options -Indexes

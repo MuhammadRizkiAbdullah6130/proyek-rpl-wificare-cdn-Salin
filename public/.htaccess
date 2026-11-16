@@ -1,0 +1,43 @@
+# WiFiCare CDN — konfigurasi Apache untuk folder public/
+#
+# Seluruh permintaan yang bukan berkas/folder nyata diteruskan ke front
+# controller. Syarat: mod_rewrite aktif (aktif secara bawaan pada XAMPP).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # RewriteBase sengaja TIDAK diisi: mod_rewrite memakai path folder .htaccess
+    # ini sebagai basis, sehingga aplikasi tetap benar baik dipasang di document
+    # root (public/) maupun di subfolder (mis. /aduan-pelanggan/public/).
+
+    # Jangan ubah permintaan terhadap berkas atau folder yang benar-benar ada.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Teruskan sisanya ke front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+DirectoryIndex index.php
+
+# Sembunyikan daftar direktori.
+Options -Indexes
+
+# Jangan sajikan dotfiles (mis. .env yang keliru diletakkan di public).
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Header keamanan dasar.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
