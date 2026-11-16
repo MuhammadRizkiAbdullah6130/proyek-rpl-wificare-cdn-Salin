@@ -55,26 +55,29 @@ jobs:
   # ---------------------------------------------------------------------------
   # 2. PHPUnit — Unit + Integration memakai database uji terpisah.
   #    Tidak ada API AI eksternal, WhatsApp sungguhan, atau database produksi.
+  #    MariaDB 10.4 dipakai karena migrasi memakai sintaks `IF NOT EXISTS`
+  #    pada ALTER TABLE yang hanya didukung MariaDB (bukan MySQL 8.0), dan
+  #    merupakan versi yang sama dengan lingkungan pengembangan (XAMPP 10.4).
   # ---------------------------------------------------------------------------
   tests:
-    name: PHPUnit (PHP 8.2, MySQL 8.0)
+    name: PHPUnit (PHP 8.2, MariaDB 10.4)
     runs-on: ubuntu-latest
 
     services:
       # Database uji sekali pakai. Hanya berlaku di runner CI, bukan produksi.
-      mysql:
-        image: mysql:8.0
+      mariadb:
+        image: mariadb:10.4
         env:
           # Kredensial ephemeral khusus CI (bukan kredensial aplikasi/produksi).
-          MYSQL_ROOT_PASSWORD: ci_root_password
-          MYSQL_DATABASE: wificare_cdn_phpunit
+          MARIADB_ROOT_PASSWORD: ci_root_password
+          MARIADB_DATABASE: wificare_cdn_phpunit
         ports:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_password"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=15
 
     env:
       # Konfigurasi database uji. Nama berakhiran `_phpunit` sehingga bootstrap
@@ -115,16 +118,16 @@ jobs:
       - name: Install dependency Composer
         run: composer install --prefer-dist --no-progress --no-interaction
 
-      - name: Tunggu MySQL siap
+      - name: Tunggu database siap
         run: |
           for i in $(seq 1 30); do
             if mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -pci_root_password --silent; then
-              echo "MySQL siap."
+              echo "Database siap."
               exit 0
             fi
             sleep 2
           done
-          echo "MySQL tidak siap dalam batas waktu."
+          echo "Database tidak siap dalam batas waktu."
           exit 1
 
       - name: Siapkan skema database uji (migrasi + seeder)
