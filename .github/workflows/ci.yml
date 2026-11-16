@@ -1,0 +1,134 @@
+name: CI
+
+# Berjalan otomatis pada setiap push ke main dan pada Pull Request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Batalkan run lama bila ada push baru pada ref yang sama.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Pemeriksaan sintaks PHP (lint) — statis, tanpa database.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: PHP Lint (syntax check)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, curl, pdo, pdo_mysql
+          coverage: none
+          ini-values: error_reporting=E_ALL
+
+      - name: Lint app/ bin/ tests/ public/
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null; then
+              echo "::error file=$file::Syntax error"
+              php -l "$file"
+              fail=1
+            fi
+          done < <(find app bin tests public -type f -name '*.php' -print0)
+          if [ "$fail" -ne 0 ]; then
+            echo "Pemeriksaan sintaks gagal."
+            exit 1
+          fi
+          echo "Pemeriksaan sintaks PHP berhasil."
+
+  # ---------------------------------------------------------------------------
+  # 2. PHPUnit — Unit + Integration memakai database uji terpisah.
+  #    Tidak ada API AI eksternal, WhatsApp sungguhan, atau database produksi.
+  # ---------------------------------------------------------------------------
+  tests:
+    name: PHPUnit (PHP 8.2, MySQL 8.0)
+    runs-on: ubuntu-latest
+
+    services:
+      # Database uji sekali pakai. Hanya berlaku di runner CI, bukan produksi.
+      mysql:
+        image: mysql:8.0
+        env:
+          # Kredensial ephemeral khusus CI (bukan kredensial aplikasi/produksi).
+          MYSQL_ROOT_PASSWORD: ci_root_password
+          MYSQL_DATABASE: wificare_cdn_phpunit
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # Konfigurasi database uji. Nama berakhiran `_phpunit` sehingga bootstrap
+      # PHPUnit (tests/bootstrap.php) mengizinkan run dan tidak akan pernah
+      # menyentuh database aktif.
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      APP_BASE_PATH: ''
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_NAME: wificare_cdn_phpunit
+      DB_USER: root
+      DB_PASSWORD: ci_root_password
+      PHPUNIT_DB_NAME: wificare_cdn_phpunit
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, curl, pdo, pdo_mysql
+          coverage: none
+          ini-values: error_reporting=E_ALL
+
+      - name: Validasi composer.json
+        run: composer validate --no-check-publish
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependency Composer
+        run: composer install --prefer-dist --no-progress --no-interaction --no-scripts
+
+      - name: Tunggu MySQL siap
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -pci_root_password --silent; then
+              echo "MySQL siap."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL tidak siap dalam batas waktu."
+          exit 1
+
+      - name: Siapkan skema database uji (migrasi + seeder)
+        run: php bin/migrate.php
+
+      - name: Jalankan PHPUnit
+        run: php vendor/phpunit/phpunit/phpunit --no-coverage
