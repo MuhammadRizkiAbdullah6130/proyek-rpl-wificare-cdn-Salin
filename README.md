@@ -5,7 +5,9 @@ PRODI : TEKNIK INFORMATIKA
 KELAS : TI-1F-2025
 
 LINK PENGUMPULAN VIDEO PRESENTASI YOUTUBE :
-# WiFiCare CDN
+TAHAP 1: https://youtu.be/59rLj4kuZHs?si=43oHUVAe6TmB_gwW
+TAHAP 2: https://youtu.be/-r_-xRkXjj4?si=jx1tzWJfszO7Hv9w
+FINAL VIDEO DEMO : https://youtu.be/ITtc1w0I5U4?si=IYrsQSY22kHlHsxe
 
 Sistem manajemen pengaduan pelanggan untuk penyedia layanan WiFi (versi 1.0).
 
